@@ -7,6 +7,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { env } from '$env/dynamic/private';
 import { PUBLIC_APP_URL } from '$env/static/public';
 
+const POLAR_ENVIRONMENT = (env.POLAR_ENVIRONMENT as 'sandbox' | 'production' | undefined) || 'sandbox';
 const POLAR_ACCESS_TOKEN = env.POLAR_ACCESS_TOKEN!;
 const POLAR_WEBHOOK_SECRET = env.POLAR_WEBHOOK_SECRET!;
 const GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID!;
@@ -21,7 +22,7 @@ function safeParseDate(value: string | Date | null | undefined): Date | null {
 
 const polarClient = new Polar({
     accessToken: POLAR_ACCESS_TOKEN,
-    server: 'sandbox'
+    server: POLAR_ENVIRONMENT
 });
 
 export const auth = betterAuth({
