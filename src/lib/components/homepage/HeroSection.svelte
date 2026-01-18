@@ -47,7 +47,7 @@
                 class="bg-background rounded-(--radius) relative m-4 overflow-hidden border border-transparent shadow-xl shadow-black/15 ring-1 ring-black/10 sm:m-8 md:m-12"
             >
                 <img
-                    src="https://jdj14ctwppwprnqu.public.blob.vercel-storage.com/GsZRNq5WsAAMbrG-H9YrPK4HJnXSQV692jECFST4zyYpva.jpg"
+                    src="/image/svelte-starter-kit-1024-q50.jpg"
                     alt="app screen"
                     class="object-top-left size-full object-cover"
                 />
