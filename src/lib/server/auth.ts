@@ -1,10 +1,12 @@
 import { db } from '$lib/server/db';
 import { account, session, subscription, user, verification } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { checkout, polar, portal, usage, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP } from 'better-auth/plugins';
+import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { env } from '$env/dynamic/private';
 import { PUBLIC_APP_URL } from '$env/static/public';
 import { Resend } from 'resend';
@@ -224,7 +226,29 @@ export const auth = betterAuth({
                 })
             ]
         })
-    ]
+    ],
+    // 全局 before hook：在发送注册验证码前检查邮箱是否已存在
+    hooks: {
+        before: createAuthMiddleware(async (ctx) => {
+            // 仅拦截发送验证码的请求
+            if (ctx.path === '/email-otp/send-verification-otp' && ctx.body?.type === 'email-verification') {
+                const email = ctx.body.email?.toLowerCase();
+                if (email) {
+                    const existingUser = await db
+                        .select({ id: user.id })
+                        .from(user)
+                        .where(eq(user.email, email))
+                        .limit(1);
+                    if (existingUser.length > 0) {
+                        throw new APIError('BAD_REQUEST', {
+                            message: '该邮箱已注册，请直接登录',
+                            code: 'USER_ALREADY_EXISTS'
+                        });
+                    }
+                }
+            }
+        })
+    }
 });
 
 export type Session = typeof auth.$Infer.Session;

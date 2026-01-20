@@ -61,7 +61,7 @@
         return true;
     }
 
-    // OTP 模式：发送验证码（先检查账号是否存在）
+    // OTP 模式：发送验证码（后端 before hook 会检查邮箱是否存在）
     async function handleSendOTP() {
         if (!email) {
             toast.error("请输入邮箱地址");
@@ -71,8 +71,6 @@
 
         loading = true;
         try {
-            // 先尝试发送登录类型的 OTP 来检查账号是否存在
-            // 如果账号不存在，发送 email-verification 类型
             const result = await authClient.emailOtp.sendVerificationOtp({
                 email,
                 type: "email-verification",
@@ -80,6 +78,7 @@
             if (result.error) {
                 // 检查是否是账号已存在的错误
                 if (
+                    result.error.message?.includes("已注册") ||
                     result.error.message?.includes("already") ||
                     result.error.message?.includes("exists") ||
                     result.error.code === "USER_ALREADY_EXISTS"
