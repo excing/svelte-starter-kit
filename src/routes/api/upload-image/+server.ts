@@ -2,8 +2,13 @@ import { uploadImageAssets } from '$lib/server/upload-image';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
     try {
+        // 认证检查：确保用户已登录
+        if (!locals.session?.user) {
+            return json({ error: 'Unauthorized. Please sign in to upload files.' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
 
@@ -41,7 +46,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const filename = `upload-${timestamp}.${fileExt || 'png'}`;
 
         // Upload the file
-        const url = await uploadImageAssets(buffer, filename);
+        const url = await uploadImageAssets(buffer, filename, file.type);
 
         return json({ url });
     } catch (error) {

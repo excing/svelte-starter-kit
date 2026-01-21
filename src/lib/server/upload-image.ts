@@ -10,18 +10,17 @@ const r2 = new S3Client({
     }
 });
 
-export const uploadImageAssets = async (buffer: Buffer, key: string) => {
+export const uploadImageAssets = async (buffer: Buffer, key: string, contentType: string = 'image/png') => {
     await r2.send(
         new PutObjectCommand({
             Bucket: env.R2_UPLOAD_IMAGE_BUCKET_NAME!,
             Key: key,
             Body: buffer,
-            ContentType: 'image/*',
+            ContentType: contentType,
             ACL: 'public-read'
         })
     );
 
-    // 需要替换为你的 R2 公开 URL
-    const publicUrl = `https://pub-xxxxxxxx.r2.dev/${key}`;
+    const publicUrl = `${env.R2_PUBLIC_URL}/${key}`;
     return publicUrl;
 };

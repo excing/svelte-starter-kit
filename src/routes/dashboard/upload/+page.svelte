@@ -153,16 +153,16 @@
                             ? "border-primary bg-primary/5"
                             : "border-muted-foreground/25 hover:border-muted-foreground/50"
                     }`}
-                    on:dragenter={handleDrag}
-                    on:dragleave={handleDrag}
-                    on:dragover={handleDrag}
-                    on:drop={handleDrop}
+                    ondragenter={handleDrag}
+                    ondragleave={handleDrag}
+                    ondragover={handleDrag}
+                    ondrop={handleDrop}
                 >
                     <Input
                         type="file"
                         accept="image/*"
                         multiple
-                        on:change={handleInputChange}
+                        onchange={handleInputChange}
                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                         disabled={uploading}
                     />
