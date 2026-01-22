@@ -98,6 +98,7 @@ A comprehensive, production-ready SaaS starter kit built with SvelteKit, featuri
 - Polar.sh account for subscriptions
 - OpenAI API key for AI features
 - Google OAuth credentials (optional)
+- Resend API key for email notifications
 
 ### Installation
 
@@ -141,6 +142,10 @@ PUBLIC_STARTER_SLUG=your-starter-slug
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
 
+# Resend (Email)
+RESEND_API_KEY=re_123456789
+RESEND_FROM_EMAIL=noreply@example.com
+
 # Cloudflare R2 Storage
 CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
 R2_UPLOAD_IMAGE_ACCESS_KEY_ID=your-r2-access-key-id
@@ -171,7 +176,25 @@ npx drizzle-kit studio
 - Configure your pricing structure
 - Note: The Polar client is in **sandbox mode** by default (change in `src/lib/server/auth.ts:24` for production)
 
-7. **Start Development Server**
+7. **Google OAuth Setup**
+- Go to the [Google Cloud Console](https://console.cloud.google.com/)
+- Create a new project or select an existing one
+- Navigate to "APIs & Services" > "OAuth consent screen"
+- Configure the consent screen (User Type: External for testing)
+- Navigate to "Credentials" > "Create Credentials" > "OAuth client ID"
+- Application type: "Web application"
+- Authorized JavaScript origins: `http://localhost:3000` (and your production URL)
+- Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google` (and your production URL)
+- Copy the Client ID and Client Secret to your `.env` file
+
+8. **Resend Setup**
+- Create an account at [Resend](https://resend.com)
+- Create an API Key in the dashboard
+- Verify your domain (recommended for production)
+- Copy the API Key to `RESEND_API_KEY` in your `.env`
+- Set `RESEND_FROM_EMAIL` to your verified sender email
+
+9. **Start Development Server**
 ```bash
 npm run dev
 ```
