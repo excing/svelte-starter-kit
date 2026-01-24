@@ -1,18 +1,35 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
-    import type { SubscriptionDetailsResult } from "$lib/server/subscription";
+    import { onMount } from "svelte";
+	    import type { SubscriptionDetailsResult } from "$lib/types/subscription";
+	    import {
+	        ensureSubscriptionDetailsLoaded,
+	        subscriptionDetails as subscriptionDetailsStore,
+	        subscriptionLoaded,
+	        subscriptionLoading,
+	    } from "$lib/stores/subscription";
 
-    let { data } = $props();
+	    const emptyDetails: SubscriptionDetailsResult = { hasSubscription: false };
+	    let subscriptionDetails = $derived($subscriptionDetailsStore ?? emptyDetails);
+	    let loading = $derived(!$subscriptionLoaded || $subscriptionLoading);
 
-    const subscriptionDetails: SubscriptionDetailsResult =
-        data.subscriptionDetails;
+    onMount(async () => {
+	        await ensureSubscriptionDetailsLoaded();
+    });
 </script>
 
 <div>
     <div class="space-y-4 p-6">
         <div class="relative min-h-screen">
-            {#if !subscriptionDetails.hasSubscription || subscriptionDetails.subscription?.status !== "active"}
+            {#if loading}
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <div class="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                        <p class="text-muted-foreground">Loading subscription details...</p>
+                    </div>
+                </div>
+            {:else if !subscriptionDetails.hasSubscription || subscriptionDetails.subscription?.status !== "active"}
                 <div
                     class="absolute inset-0 z-10 flex items-center justify-center rounded-lg"
                 >

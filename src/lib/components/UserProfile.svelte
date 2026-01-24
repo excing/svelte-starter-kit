@@ -2,19 +2,14 @@
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
     import * as Avatar from "$lib/components/ui/avatar";
     import { authClient } from "$lib/auth-client";
+	    import { browser } from "$app/environment";
     import { Loader2 } from "lucide-svelte";
     import { goto } from "$app/navigation";
-    import { onMount } from "svelte";
+	    import type { AuthUser } from "$lib/stores/auth";
+	    import { authLoaded, clearAuthState, currentUser } from "$lib/stores/auth";
+	    import { resetSubscriptionDetails } from "$lib/stores/subscription";
 
-    interface UserInfo {
-        id: string;
-        name: string;
-        image?: string | null | undefined;
-        email: string;
-        emailVerified: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-    }
+	    type UserInfo = AuthUser;
 
     interface Props {
         mini?: boolean;
@@ -22,44 +17,32 @@
 
     let { mini = false }: Props = $props();
 
-    let userInfo = $state<UserInfo | null>(null);
-    let loading = $state(true);
+	    let userInfo = $derived($currentUser as UserInfo | null);
+	    let loading = $derived(!$authLoaded);
     let error = $state<string | null>(null);
 
-    onMount(async () => {
-        await fetchUserData();
-    });
-
-    async function fetchUserData() {
-        loading = true;
-        error = null;
-
-        try {
-            const result = await authClient.getSession();
-
-            if (!result.data?.user) {
-                goto("/sign-in");
-                return;
-            }
-
-            userInfo = result.data?.user;
-        } catch (err) {
-            console.error("Error fetching user data:", err);
-            error =
-                "Failed to load user profile. Please try refreshing the page.";
-        } finally {
-            loading = false;
-        }
-    }
+	    $effect(() => {
+	        if (browser && $authLoaded && !$currentUser) {
+	            goto("/sign-in");
+	        }
+	    });
 
     async function handleSignOut() {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    goto("/sign-in");
-                },
-            },
-        });
+	        error = null;
+	        try {
+	            await authClient.signOut({
+	                fetchOptions: {
+	                    onSuccess: () => {
+	                        clearAuthState();
+	                        resetSubscriptionDetails();
+	                        goto("/sign-in");
+	                    },
+	                },
+	            });
+	        } catch (err) {
+	            console.error("Sign out failed:", err);
+	            error = "Failed to sign out. Please try again.";
+	        }
     }
 </script>
 

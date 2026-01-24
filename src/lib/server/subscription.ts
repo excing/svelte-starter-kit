@@ -4,26 +4,8 @@ import { subscription } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 
-export type SubscriptionDetails = {
-    id: string;
-    productId: string;
-    status: string;
-    amount: number;
-    currency: string;
-    recurringInterval: string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-    canceledAt: Date | null;
-    organizationId: string | null;
-};
-
-export type SubscriptionDetailsResult = {
-    hasSubscription: boolean;
-    subscription?: SubscriptionDetails;
-    error?: string;
-    errorType?: 'CANCELED' | 'EXPIRED' | 'GENERAL';
-};
+import type { SubscriptionDetailsResult } from '$lib/types/subscription';
+export type { SubscriptionDetails, SubscriptionDetailsResult } from '$lib/types/subscription';
 
 export async function getSubscriptionDetails(
     event: RequestEvent

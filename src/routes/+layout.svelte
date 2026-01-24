@@ -2,8 +2,13 @@
 	import "../app.css";
 	import { Toaster } from "$lib/components/ui/sonner";
 	import { ModeWatcher } from "mode-watcher";
+	import { initAuthFromLayout } from "$lib/stores/auth";
 
-	let { children } = $props();
+	let { data, children } = $props();
+
+	$effect(() => {
+		initAuthFromLayout(data?.session);
+	});
 </script>
 
 <svelte:head>

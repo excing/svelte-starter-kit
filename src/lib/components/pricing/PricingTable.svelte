@@ -4,21 +4,44 @@
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { authClient } from "$lib/auth-client";
-    import { Check } from "lucide-svelte";
+    import { Check, Loader2 } from "lucide-svelte";
     import { toast } from "svelte-sonner";
+    import { onMount } from "svelte";
 
     import { PUBLIC_STARTER_TIER } from "$env/static/public";
 
-    import type { SubscriptionDetailsResult } from "$lib/server/subscription";
+	    import type { SubscriptionDetailsResult } from "$lib/types/subscription";
+	    import {
+	        ensureSubscriptionDetailsLoaded,
+	        resetSubscriptionDetails,
+	        setSubscriptionDetails,
+	        subscriptionDetails as subscriptionDetailsStore,
+	        subscriptionLoaded,
+	        subscriptionLoading,
+	    } from "$lib/stores/subscription";
 
     interface Props {
-        subscriptionDetails: SubscriptionDetailsResult;
+        subscriptionDetails?: SubscriptionDetailsResult;
     }
 
-    let { subscriptionDetails }: Props = $props();
+    let { subscriptionDetails: initialSubscriptionDetails }: Props = $props();
+
+	    const emptyDetails: SubscriptionDetailsResult = { hasSubscription: false };
+	    let subscriptionDetails = $derived($subscriptionDetailsStore ?? emptyDetails);
+	    let loading = $derived(!$subscriptionLoaded || $subscriptionLoading);
+
+	    onMount(async () => {
+	        if (initialSubscriptionDetails) {
+	            setSubscriptionDetails(initialSubscriptionDetails);
+	            return;
+	        }
+	        await ensureSubscriptionDetailsLoaded();
+	    });
 
     async function handleCheckout(productId: string) {
         try {
+	            // Likely to change after returning from checkout; refetch next time.
+	            resetSubscriptionDetails();
             await authClient.checkout({
                 products: [productId],
             });
@@ -30,6 +53,8 @@
 
     async function handleManageSubscription() {
         try {
+	            // Portal actions can change status; refetch on return.
+	            resetSubscriptionDetails();
             await authClient.customer.portal();
         } catch (error) {
             console.error("Failed to open customer portal:", error);
@@ -45,7 +70,7 @@
         );
     }
 
-    function formatDate(date: Date) {
+	    function formatDate(date: Date | string) {
         return new Date(date).toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
@@ -106,7 +131,12 @@
                 </div>
             </Card.Content>
             <Card.Footer>
-                {#if isCurrentPlan(PUBLIC_STARTER_TIER)}
+                {#if loading}
+                    <Button class="w-full" disabled>
+                        <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                    </Button>
+                {:else if isCurrentPlan(PUBLIC_STARTER_TIER)}
                     <div class="w-full space-y-2">
                         <Button
                             class="w-full"

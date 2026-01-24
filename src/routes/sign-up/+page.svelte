@@ -61,40 +61,39 @@
         return true;
     }
 
-    // OTP 模式：发送验证码（后端 before hook 会检查邮箱是否存在）
+    // OTP 模式：先注册用户，自动发送验证码
     async function handleSendOTP() {
-        if (!email) {
-            toast.error("请输入邮箱地址");
-            return;
-        }
         if (!validateForm()) return;
 
         loading = true;
         try {
-            const result = await authClient.emailOtp.sendVerificationOtp({
+            // 先注册用户，better-auth 的 sendVerificationOnSignUp: true 会自动发送 OTP
+            const signUpResult = await authClient.signUp.email({
                 email,
-                type: "email-verification",
+                password,
+                name: getNameFromEmail(email),
             });
-            if (result.error) {
+
+            if (signUpResult.error) {
                 // 检查是否是账号已存在的错误
                 if (
-                    result.error.message?.includes("已注册") ||
-                    result.error.message?.includes("already") ||
-                    result.error.message?.includes("exists") ||
-                    result.error.code === "USER_ALREADY_EXISTS"
+                    signUpResult.error.message?.includes("已注册") ||
+                    signUpResult.error.message?.includes("already") ||
+                    signUpResult.error.message?.includes("exists") ||
+                    signUpResult.error.code === "USER_ALREADY_EXISTS"
                 ) {
                     toast.error("该邮箱已注册，请直接登录");
                 } else {
-                    toast.error(result.error.message || "发送验证码失败");
+                    toast.error(signUpResult.error.message || "注册失败");
                 }
             } else {
                 otpSent = true;
                 emailChecked = true;
-                toast.success("验证码已发送到您的邮箱");
+                toast.success("注册成功！验证码已发送到您的邮箱");
             }
         } catch (error) {
-            console.error("Send OTP error:", error);
-            toast.error("发送验证码失败");
+            console.error("Sign up error:", error);
+            toast.error("注册失败，请重试");
         } finally {
             loading = false;
         }
@@ -134,17 +133,17 @@
         }
     }
 
-    // OTP 模式：验证并注册
+    // OTP 模式：验证验证码
     async function handleOTPSignUp(e: Event) {
         e.preventDefault();
 
-        // 如果还没发送验证码，先发送
+        // 如果还没注册，先注册（会自动发送验证码）
         if (!otpSent) {
             await handleSendOTP();
             return;
         }
 
-        // 验证码已发送，验证并注册
+        // 验证码已发送，验证邮箱
         if (!otp || otp.length < 6) {
             toast.error("请输入 6 位验证码");
             return;
@@ -152,26 +151,6 @@
 
         loading = true;
         try {
-            // 先注册用户
-            const signUpResult = await authClient.signUp.email({
-                email,
-                password,
-                name: getNameFromEmail(email),
-                callbackURL: returnTo || "/dashboard",
-            });
-            if (signUpResult.error) {
-                if (
-                    signUpResult.error.message?.includes("already") ||
-                    signUpResult.error.message?.includes("exists")
-                ) {
-                    toast.error("该邮箱已注册，请直接登录");
-                } else {
-                    toast.error(signUpResult.error.message || "注册失败");
-                }
-                loading = false;
-                return;
-            }
-            // 然后验证邮箱
             const verifyResult = await authClient.emailOtp.verifyEmail({
                 email,
                 otp,
@@ -180,13 +159,13 @@
                 toast.error(verifyResult.error.message || "验证码错误");
                 loading = false;
             } else {
-                toast.success("注册成功！邮箱已验证");
+                toast.success("邮箱验证成功！");
                 goto(returnTo || "/dashboard");
             }
         } catch (error) {
             loading = false;
-            console.error("OTP Registration error:", error);
-            toast.error("注册失败，请重试");
+            console.error("OTP verification error:", error);
+            toast.error("验证失败，请重试");
         }
     }
 
@@ -299,7 +278,7 @@
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                     {/if}
                     {#if isOtpMode}
-                        {otpSent ? "验证并注册" : "发送验证码"}
+                        {otpSent ? "验证邮箱" : "注册"}
                     {:else}
                         注册
                     {/if}

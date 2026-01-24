@@ -10,8 +10,9 @@
     import { Settings2, ExternalLink } from "lucide-svelte";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
-    import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
+	    import { authLoaded, currentUser, patchCurrentUser } from "$lib/stores/auth";
+	    import { resetSubscriptionDetails } from "$lib/stores/subscription";
 
     interface User {
         id: string;
@@ -20,13 +21,14 @@
         image?: string | null;
     }
 
-    let user = $state<User | null>(null);
-    let loading = $state(true);
+	    let user = $derived($currentUser as User | null);
+	    let loading = $derived(!$authLoaded);
     let currentTab = $state("profile");
 
     // Profile form states
     let name = $state("");
     let email = $state("");
+	    let didInitForm = $state(false);
 
     // Profile picture upload states
     let imagePreview = $state<string | null>(null);
@@ -40,20 +42,14 @@
         }
     });
 
-    onMount(async () => {
-        try {
-            const session = await authClient.getSession();
-            if (session.data?.user) {
-                user = session.data.user;
-                name = session.data.user.name || "";
-                email = session.data.user.email || "";
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            loading = false;
-        }
-    });
+	    $effect(() => {
+	        if (!$authLoaded || didInitForm) return;
+	        if ($currentUser) {
+	            name = ($currentUser as any)?.name || "";
+	            email = ($currentUser as any)?.email || "";
+	            didInitForm = true;
+	        }
+	    });
 
     function handleTabChange(value: string) {
         currentTab = value;
@@ -65,6 +61,7 @@
     async function handleUpdateProfile() {
         try {
             await authClient.updateUser({ name });
+	            patchCurrentUser({ name });
             toast.success("Profile updated successfully");
         } catch {
             toast.error("Failed to update profile");
@@ -183,6 +180,7 @@
                             variant="outline"
                             onclick={async () => {
                                 try {
+	                                    resetSubscriptionDetails();
                                     await authClient.customer.portal();
                                 } catch (error) {
                                     console.error(
