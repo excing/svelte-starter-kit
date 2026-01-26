@@ -7,20 +7,12 @@
     import { cn } from "$lib/utils";
     import { toast } from "svelte-sonner";
     import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
     import { Loader2 } from "lucide-svelte";
-
-    // 从服务端获取验证模式
-    let { data } = $props();
-    const isOtpMode = $derived(data.emailVerificationMode === "otp");
 
     let loading = $state(false);
     let email = $state("");
     let password = $state("");
     let confirmPassword = $state("");
-    let otp = $state("");
-    let otpSent = $state(false);
-    let emailChecked = $state(false); // 邮箱是否已检查
     const returnTo = $derived($page.url.searchParams.get("returnTo"));
 
     // 从邮箱提取默认姓名
@@ -61,45 +53,7 @@
         return true;
     }
 
-    // OTP 模式：先注册用户，自动发送验证码
-    async function handleSendOTP() {
-        if (!validateForm()) return;
-
-        loading = true;
-        try {
-            // 先注册用户，better-auth 的 sendVerificationOnSignUp: true 会自动发送 OTP
-            const signUpResult = await authClient.signUp.email({
-                email,
-                password,
-                name: getNameFromEmail(email),
-            });
-
-            if (signUpResult.error) {
-                // 检查是否是账号已存在的错误
-                if (
-                    signUpResult.error.message?.includes("已注册") ||
-                    signUpResult.error.message?.includes("already") ||
-                    signUpResult.error.message?.includes("exists") ||
-                    signUpResult.error.code === "USER_ALREADY_EXISTS"
-                ) {
-                    toast.error("该邮箱已注册，请直接登录");
-                } else {
-                    toast.error(signUpResult.error.message || "注册失败");
-                }
-            } else {
-                otpSent = true;
-                emailChecked = true;
-                toast.success("注册成功！验证码已发送到您的邮箱");
-            }
-        } catch (error) {
-            console.error("Sign up error:", error);
-            toast.error("注册失败，请重试");
-        } finally {
-            loading = false;
-        }
-    }
-
-    // 普通模式：直接注册
+    // 邮箱注册
     async function handleEmailSignUp(e: Event) {
         e.preventDefault();
         if (!validateForm()) return;
@@ -110,7 +64,6 @@
                 email,
                 password,
                 name: getNameFromEmail(email),
-                callbackURL: returnTo || "/dashboard",
             });
             if (result.error) {
                 if (
@@ -121,69 +74,14 @@
                 } else {
                     toast.error(result.error.message || "注册失败");
                 }
-                loading = false;
             } else {
-                toast.success("注册成功！");
-                goto(returnTo || "/dashboard");
+                toast.success(
+                    "注册成功！请查收验证邮件并点击链接验证您的邮箱。",
+                );
             }
         } catch (error) {
-            loading = false;
             console.error("Registration error:", error);
             toast.error("注册失败，请重试");
-        }
-    }
-
-    // OTP 模式：验证验证码
-    async function handleOTPSignUp(e: Event) {
-        e.preventDefault();
-
-        // 如果还没注册，先注册（会自动发送验证码）
-        if (!otpSent) {
-            await handleSendOTP();
-            return;
-        }
-
-        // 验证码已发送，验证邮箱
-        if (!otp || otp.length < 6) {
-            toast.error("请输入 6 位验证码");
-            return;
-        }
-
-        loading = true;
-        try {
-            const verifyResult = await authClient.emailOtp.verifyEmail({
-                email,
-                otp,
-            });
-            if (verifyResult.error) {
-                toast.error(verifyResult.error.message || "验证码错误");
-                loading = false;
-            } else {
-                toast.success("邮箱验证成功！");
-                goto(returnTo || "/dashboard");
-            }
-        } catch (error) {
-            loading = false;
-            console.error("OTP verification error:", error);
-            toast.error("验证失败，请重试");
-        }
-    }
-
-    // 重新发送验证码
-    async function resendOTP() {
-        loading = true;
-        try {
-            const result = await authClient.emailOtp.sendVerificationOtp({
-                email,
-                type: "email-verification",
-            });
-            if (result.error) {
-                toast.error(result.error.message || "发送验证码失败");
-            } else {
-                toast.success("验证码已重新发送");
-            }
-        } catch (error) {
-            toast.error("发送验证码失败");
         } finally {
             loading = false;
         }
@@ -199,10 +97,7 @@
             </Card.Description>
         </Card.Header>
         <Card.Content>
-            <form
-                class="grid gap-4"
-                onsubmit={isOtpMode ? handleOTPSignUp : handleEmailSignUp}
-            >
+            <form class="grid gap-4" onsubmit={handleEmailSignUp}>
                 <div class="grid gap-2">
                     <Label for="email">邮箱</Label>
                     <Input
@@ -210,7 +105,7 @@
                         type="email"
                         placeholder="your@email.com"
                         bind:value={email}
-                        disabled={loading || (isOtpMode && otpSent)}
+                        disabled={loading}
                         required
                     />
                 </div>
@@ -221,7 +116,7 @@
                         type="password"
                         placeholder="至少 8 位"
                         bind:value={password}
-                        disabled={loading || (isOtpMode && otpSent)}
+                        disabled={loading}
                         required
                     />
                 </div>
@@ -232,73 +127,17 @@
                         type="password"
                         placeholder="再次输入密码"
                         bind:value={confirmPassword}
-                        disabled={loading || (isOtpMode && otpSent)}
+                        disabled={loading}
                         required
                     />
                 </div>
-
-                {#if isOtpMode}
-                    <!-- OTP 验证码输入 -->
-                    <div class="grid gap-2">
-                        <div class="flex items-center justify-between">
-                            <Label for="otp">验证码</Label>
-                            {#if otpSent}
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    class="h-auto p-0 text-xs"
-                                    disabled={loading}
-                                    onclick={resendOTP}
-                                >
-                                    重新发送
-                                </Button>
-                            {/if}
-                        </div>
-                        <Input
-                            id="otp"
-                            type="text"
-                            placeholder={otpSent
-                                ? "请输入 6 位验证码"
-                                : "点击注册按钮发送验证码"}
-                            bind:value={otp}
-                            disabled={loading || !otpSent}
-                            maxlength={6}
-                            class="text-center text-lg tracking-widest"
-                        />
-                        {#if otpSent}
-                            <p class="text-xs text-muted-foreground">
-                                验证码已发送到 {email}
-                            </p>
-                        {/if}
-                    </div>
-                {/if}
 
                 <Button type="submit" class="w-full" disabled={loading}>
                     {#if loading}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                     {/if}
-                    {#if isOtpMode}
-                        {otpSent ? "验证邮箱" : "注册"}
-                    {:else}
-                        注册
-                    {/if}
+                    注册
                 </Button>
-
-                {#if isOtpMode && otpSent}
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        class="w-full"
-                        disabled={loading}
-                        onclick={() => {
-                            otpSent = false;
-                            emailChecked = false;
-                            otp = "";
-                        }}
-                    >
-                        修改邮箱
-                    </Button>
-                {/if}
             </form>
 
             <div class="relative my-4">

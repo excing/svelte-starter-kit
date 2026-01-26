@@ -5,8 +5,6 @@ import { checkout, polar, portal, usage, webhooks } from '@polar-sh/better-auth'
 import { Polar } from '@polar-sh/sdk';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP } from 'better-auth/plugins';
-import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { env } from '$env/dynamic/private';
 import { PUBLIC_APP_URL } from '$env/static/public';
 import { Resend } from 'resend';
@@ -18,12 +16,6 @@ const GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = env.GOOGLE_CLIENT_SECRET!;
 const RESEND_API_KEY = env.RESEND_API_KEY!;
 const RESEND_FROM_EMAIL = env.RESEND_FROM_EMAIL || 'noreply@example.com';
-const EMAIL_VERIFICATION_MODE = (env.EMAIL_VERIFICATION_MODE as 'otp' | 'required' | 'optional') || 'optional';
-
-console.log('----------------------------------------');
-console.log('AUTH CONFIG CHECK');
-console.log('EMAIL_VERIFICATION_MODE:', EMAIL_VERIFICATION_MODE);
-console.log('----------------------------------------');
 
 const resend = new Resend(RESEND_API_KEY);
 
@@ -66,7 +58,7 @@ export const auth = betterAuth({
         enabled: true,
         minPasswordLength: 8,
         maxPasswordLength: 128,
-        requireEmailVerification: EMAIL_VERIFICATION_MODE === 'required',
+        requireEmailVerification: true,
         sendResetPassword: async ({ user, url }) => {
             console.log('Sending reset password email to:', user.email);
             const result = await resend.emails.send({
@@ -87,62 +79,27 @@ export const auth = betterAuth({
             }
         },
     },
-    // 链接验证模式 (用于 required 和 optional 模式)
-    ...(EMAIL_VERIFICATION_MODE !== 'otp' ? {
-        emailVerification: {
-            sendVerificationEmail: async ({ user, url }) => {
-                console.log('Sending verification email to:', user.email);
-                const result = await resend.emails.send({
-                    from: RESEND_FROM_EMAIL,
-                    to: user.email,
-                    subject: '验证您的邮箱 - SvelteKit Starter Kit',
-                    html: `
-                        <h2>验证邮箱</h2>
-                        <p>您好 ${user.name}，</p>
-                        <p>点击下面的链接验证您的邮箱：</p>
-                        <a href="${url}" style="display:inline-block;padding:12px 24px;background:#0070f3;color:white;text-decoration:none;border-radius:6px;">验证邮箱</a>
-                    `,
-                });
-                if (result.error) {
-                    console.error('Failed to send verification email:', result.error);
-                    throw new Error(result.error.message);
-                }
-            },
+    emailVerification: {
+        sendVerificationEmail: async ({ user, url }) => {
+            console.log('Sending verification email to:', user.email);
+            const result = await resend.emails.send({
+                from: RESEND_FROM_EMAIL,
+                to: user.email,
+                subject: '验证您的邮箱 - SvelteKit Starter Kit',
+                html: `
+                    <h2>验证邮箱</h2>
+                    <p>您好 ${user.name}，</p>
+                    <p>点击下面的链接验证您的邮箱：</p>
+                    <a href="${url}" style="display:inline-block;padding:12px 24px;background:#0070f3;color:white;text-decoration:none;border-radius:6px;">验证邮箱</a>
+                `,
+            });
+            if (result.error) {
+                console.error('Failed to send verification email:', result.error);
+                throw new Error(result.error.message);
+            }
         },
-    } : {}),
+    },
     plugins: [
-        // OTP 验证码插件 (仅 otp 模式启用)
-        ...(EMAIL_VERIFICATION_MODE === 'otp' ? [
-            emailOTP({
-                otpLength: 6,
-                expiresIn: 300, // 5分钟
-                sendVerificationOnSignUp: true,
-                async sendVerificationOTP({ email, otp, type }) {
-                    const subjects: Record<string, string> = {
-                        'sign-in': '登录验证码',
-                        'email-verification': '邮箱验证码',
-                        'forget-password': '密码重置验证码',
-                    };
-                    console.log('Attempting to send OTP email to:', email);
-                    const result = await resend.emails.send({
-                        from: RESEND_FROM_EMAIL,
-                        to: email,
-                        subject: `${subjects[type] || '验证码'} - SvelteKit Starter Kit`,
-                        html: `
-                            <h2>${subjects[type] || '验证码'}</h2>
-                            <p>您的验证码是：</p>
-                            <div style="font-size:32px;font-weight:bold;letter-spacing:8px;padding:20px;background:#f5f5f5;text-align:center;border-radius:8px;">${otp}</div>
-                            <p>验证码 5 分钟内有效，请勿泄露给他人。</p>
-                        `,
-                    });
-                    if (result.error) {
-                        console.error('Failed to send OTP email:', result.error);
-                        throw new Error(result.error.message);
-                    }
-                    console.log('OTP email sent successfully:', result.data);
-                },
-            })
-        ] : []),
         polar({
             client: polarClient,
             createCustomerOnSignUp: true,
@@ -248,35 +205,6 @@ export const auth = betterAuth({
             ]
         })
     ],
-    // 全局 before hook：拦截已验证用户重发验证码的请求
-    hooks: {
-        before: createAuthMiddleware(async (ctx) => {
-            // 拦截发送验证码的请求，检查用户是否已验证
-            if (ctx.path === '/email-otp/send-verification-otp' && ctx.body?.type === 'email-verification') {
-                const email = ctx.body.email?.toLowerCase();
-                console.log('Received OTP request for email:', email);
-                if (email) {
-                    const existingUser = await db
-                        .select({ id: user.id, emailVerified: user.emailVerified })
-                        .from(user)
-                        .where(eq(user.email, email))
-                        .limit(1);
-
-                    if (existingUser.length > 0 && existingUser[0].emailVerified) {
-                        // 用户已存在且已验证 -> 拒绝，提示登录
-                        console.log('User already verified:', email);
-                        throw new APIError('BAD_REQUEST', {
-                            message: '该邮箱已注册，请直接登录',
-                            code: 'USER_ALREADY_EXISTS'
-                        });
-                    }
-                    // 用户不存在或未验证 -> 允许继续（交给 emailOTP 插件处理）
-                    console.log('Proceeding with OTP send for:', email);
-                }
-            }
-            return ctx;
-        })
-    }
 });
 
 export type Session = typeof auth.$Infer.Session;
