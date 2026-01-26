@@ -7,7 +7,9 @@
     import { cn } from "$lib/utils";
     import { toast } from "svelte-sonner";
     import { page } from "$app/stores";
+    import { goto } from "$app/navigation";
     import { Loader2 } from "lucide-svelte";
+    import { recordVerificationEmailSent } from "$lib/utils/verification";
 
     let loading = $state(false);
     let email = $state("");
@@ -75,9 +77,11 @@
                     toast.error(result.error.message || "注册失败");
                 }
             } else {
-                toast.success(
-                    "注册成功！请查收验证邮件并点击链接验证您的邮箱。",
-                );
+                // toast.success("注册成功！请查收验证邮件");
+                // 记录发送时间到 localStorage（注册时会自动发送验证邮件）
+                recordVerificationEmailSent(email);
+                // 跳转到邮箱验证页面
+                goto(`/verify-email?email=${encodeURIComponent(email)}`);
             }
         } catch (error) {
             console.error("Registration error:", error);

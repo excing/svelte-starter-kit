@@ -9,6 +9,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { Loader2 } from "lucide-svelte";
+    import { recordVerificationEmailSent } from "$lib/utils/verification";
 
     let loading = $state(false);
     let email = $state("");
@@ -44,7 +45,24 @@
             });
             if (result.error) {
                 if (result.error.status === 403) {
-                    toast.error("请先验证您的邮箱");
+                    // 邮箱未验证，发送验证邮件并跳转
+                    try {
+                        await authClient.sendVerificationEmail({
+                            email,
+                            callbackURL: "/dashboard",
+                        });
+                        // 记录发送时间到 localStorage
+                        recordVerificationEmailSent(email);
+                        // 跳转到验证页面
+                        goto(
+                            `/verify-email?email=${encodeURIComponent(email)}`,
+                        );
+                    } catch (verifyError) {
+                        console.error(
+                            "Failed to send verification email:",
+                            verifyError,
+                        );
+                    }
                 } else {
                     toast.error(result.error.message || "登录失败");
                 }

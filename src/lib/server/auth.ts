@@ -38,6 +38,17 @@ export const auth = betterAuth({
         enabled: true,
         maxAge: 5 * 60 // Cache duration in seconds
     },
+    rateLimit: {
+        window: 60, // 默认 60 秒窗口
+        max: 100,   // 默认最多 100 次请求
+        storage: "database", // 使用数据库存储，适合 serverless 环境
+        customRules: {
+            "/send-verification-email": {
+                window: 90, // 发送验证邮件：90 秒窗口
+                max: 1      // 最多 1 次请求
+            }
+        }
+    },
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema: {
