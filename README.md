@@ -6,10 +6,14 @@ A comprehensive, production-ready SaaS starter kit built with SvelteKit, featuri
 
 ### 🔐 Authentication & User Management
 - **Better Auth** - Modern authentication system with Polar integration
-- Google OAuth integration
-- Session management with database persistence
-- User profile management with image uploads
-- Account linking for multiple providers
+- **Email/Password Authentication** - Built-in credential-based login with 8-128 character password requirements
+- **Email Verification** - Required email verification via secure links before account activation
+- **Rate Limiting** - 90-second cooldown between verification email sends to prevent abuse
+- **Google OAuth** - Social login integration
+- **Session Management** - Database-backed sessions with 5-minute cache for optimal performance
+- **User Profile** - Profile management with image uploads to Cloudflare R2
+- **Account Linking** - Connect multiple authentication providers to a single account
+- **Password Reset** - Secure password recovery via email
 
 ### 💳 Subscription & Billing
 - **Polar.sh** integration for subscription management
@@ -229,11 +233,15 @@ Open [http://localhost:3000](http://localhost:3000) to see your application.
 - **Copy URLs** - Easy sharing and integration
 
 ### Authentication Flow
-- Session management via `hooks.server.ts` - sets `event.locals.session`
-- Protected routes: `/dashboard/*` requires authentication
-- Auth routes: `/sign-in`, `/sign-up` redirect to `/dashboard` if already authenticated
-- Webhook endpoint `/api/payments/webhooks` bypasses authentication
-- Session caching enabled with 5-minute TTL to reduce database queries
+- **Session Management**: Handled via `hooks.server.ts` which sets `event.locals.session`
+- **Protected Routes**: `/dashboard/*` requires authentication, redirects to `/sign-in` if not logged in
+- **Auth Routes**: `/sign-in`, `/sign-up` redirect to `/dashboard` if already authenticated
+- **Email Verification**: New accounts must verify email before gaining access (configurable in `src/lib/server/auth.ts`)
+- **Rate Limiting**: Built-in protection with database storage (serverless-friendly)
+  - Default: 100 requests per 60-second window
+  - Verification emails: 1 request per 90-second window to prevent spam
+- **Session Caching**: 5-minute TTL to reduce database queries and improve performance
+- **Webhook Bypass**: `/api/payments/webhooks` bypasses authentication for Polar webhooks
 
 ## 🔧 Development Commands
 
@@ -265,8 +273,13 @@ npx drizzle-kit studio      # Open Drizzle Studio GUI
 ### Adding New Features
 1. Create components in `src/lib/components/`
 2. Add API routes in `src/routes/api/`
-3. Update database schema in `src/lib/server/db/schema.ts`
-4. Run `npx drizzle-kit generate` and `npx drizzle-kit push`
+3. Update database schema following these steps:
+   - **Generate Schema Template**: Run `npx @better-auth/cli generate` to explore available Better Auth schemas that you might need
+   - **Add Schema Definition**: Add your new table schema to `src/lib/server/db/schema.ts`
+   - **Update Drizzle Adapter**: Import and register the new schema in the `drizzleAdapter` configuration in `src/lib/server/auth.ts`
+   - **Generate Migration**: Run `npx drizzle-kit generate` to create SQL migration files
+   - **Push to Database**: Run `npx drizzle-kit push` to apply changes to your Neon database
+   - **Verify**: Optionally run `npx drizzle-kit studio` to inspect your database schema
 
 ### Styling
 - Modify `src/app.css` for global styles
