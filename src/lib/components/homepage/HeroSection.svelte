@@ -25,7 +25,7 @@
                     <span class="text-nowrap">Get Started</span>
                 </GetStartedButton>
                 <Button
-                    href="https://github.com/your-username/svelte-starter-kit"
+                    href="https://github.com/excing/svelte-starter-kit"
                     target="_blank"
                     rel="noreferrer"
                     variant="outline"
