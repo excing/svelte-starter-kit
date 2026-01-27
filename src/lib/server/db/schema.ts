@@ -1,6 +1,7 @@
 import {
     boolean,
     integer,
+    bigint,
     pgTable,
     text,
     timestamp
@@ -82,4 +83,11 @@ export const subscription = pgTable('subscription', {
     metadata: text('metadata'), // JSON string
     customFieldData: text('customFieldData'), // JSON string
     userId: text('userId').references(() => user.id)
+});
+
+export const rateLimit = pgTable("rate_limit", {
+    id: text("id").primaryKey(),
+    key: text("key"),
+    count: integer("count"),
+    lastRequest: bigint("last_request", { mode: "number" }),
 });

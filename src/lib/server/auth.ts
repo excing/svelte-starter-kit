@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { account, session, subscription, user, verification } from '$lib/server/db/schema';
+import { account, session, subscription, user, verification, rateLimit } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { checkout, polar, portal, usage, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
@@ -39,9 +39,11 @@ export const auth = betterAuth({
         maxAge: 5 * 60 // Cache duration in seconds
     },
     rateLimit: {
+        enabled: true, // 生产环境默认开启，开发环境需手动开启进行测试
         window: 60, // 默认 60 秒窗口
         max: 100,   // 默认最多 100 次请求
         storage: "database", // 使用数据库存储，适合 serverless 环境
+        // modelName: "rateLimit", //optional by default "rateLimit" is used
         customRules: {
             "/send-verification-email": {
                 window: 90, // 发送验证邮件：90 秒窗口
@@ -56,7 +58,8 @@ export const auth = betterAuth({
             session,
             account,
             verification,
-            subscription
+            subscription,
+            rateLimit
         }
     }),
     socialProviders: {
