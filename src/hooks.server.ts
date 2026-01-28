@@ -9,7 +9,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
 
     // Allow webhook endpoints without authentication
-    if (pathname.startsWith('/api/payments/webhooks')) {
+    // Better Auth Polar webhook endpoint: /api/auth/polar/webhooks
+    if (pathname.startsWith('/api/auth/polar/webhooks')) {
         return resolve(event);
     }
 

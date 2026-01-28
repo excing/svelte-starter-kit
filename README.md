@@ -76,7 +76,7 @@ A comprehensive, production-ready SaaS starter kit built with SvelteKit, featuri
 │   │       ├── auth/         # Better Auth endpoints
 │   │       ├── chat/         # AI chat API
 │   │       ├── upload-image/ # R2 upload API
-│   │       └── payments/     # Polar webhooks
+│   │       └── subscription/ # Subscription API
 │   ├── lib/
 │   │   ├── components/
 │   │   │   ├── ui/          # shadcn-svelte components
@@ -176,9 +176,10 @@ npx drizzle-kit studio
 
 6. **Polar.sh Setup**
 - Create products for your pricing tiers
-- Set up webhook endpoints for subscription events
+- **Set up webhook endpoint**: Configure webhook URL in Polar Dashboard as `https://yourdomain.com/api/auth/polar/webhooks` (or `https://your-ngrok-url.ngrok.io/api/auth/polar/webhooks` for local development)
+- Subscribe to all subscription events (created, active, updated, canceled, etc.)
 - Configure your pricing structure
-- Note: The Polar client is in **sandbox mode** by default (change in `src/lib/server/auth.ts:24` for production)
+- Note: The Polar client is in **sandbox mode** by default (change in `src/lib/server/auth.ts:12` for production)
 
 7. **Google OAuth Setup**
 - Go to the [Google Cloud Console](https://console.cloud.google.com/)
@@ -241,7 +242,7 @@ Open [http://localhost:3000](http://localhost:3000) to see your application.
   - Default: 100 requests per 60-second window
   - Verification emails: 1 request per 90-second window to prevent spam
 - **Session Caching**: 5-minute TTL to reduce database queries and improve performance
-- **Webhook Bypass**: `/api/payments/webhooks` bypasses authentication for Polar webhooks
+- **Webhook Bypass**: `/api/auth/polar/webhooks` bypasses authentication for Polar webhooks
 
 ## 🔧 Development Commands
 

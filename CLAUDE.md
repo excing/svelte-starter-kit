@@ -54,7 +54,7 @@ Authentication is handled by Better Auth with the Polar plugin:
 - Google OAuth is configured as the social provider
 - Protected routes: `/dashboard/*` requires authentication
 - Auth routes: `/sign-in`, `/sign-up` redirect to `/dashboard` if already authenticated
-- Webhook endpoint `/api/payments/webhooks` bypasses authentication
+- Webhook endpoint `/api/auth/polar/webhooks` bypasses authentication
 
 ### Database Schema
 
