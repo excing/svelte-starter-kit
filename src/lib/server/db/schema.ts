@@ -85,6 +85,33 @@ export const subscription = pgTable('subscription', {
     userId: text('userId').references(() => user.id)
 });
 
+// Order table for Polar one-time product purchases
+export const order = pgTable('order', {
+    id: text('id').primaryKey(),
+    createdAt: timestamp('createdAt').notNull(),
+    modifiedAt: timestamp('modifiedAt'),
+    status: text('status').notNull(), // pending, paid, refunded, etc.
+    paid: boolean('paid').notNull().default(false),
+    subtotalAmount: integer('subtotalAmount').notNull(),
+    discountAmount: integer('discountAmount').notNull().default(0),
+    netAmount: integer('netAmount').notNull(),
+    taxAmount: integer('taxAmount').notNull().default(0),
+    totalAmount: integer('totalAmount').notNull(),
+    refundedAmount: integer('refundedAmount').notNull().default(0),
+    currency: text('currency').notNull(),
+    billingReason: text('billingReason').notNull(), // purchase, subscription_cycle, etc.
+    billingName: text('billingName'),
+    invoiceNumber: text('invoiceNumber'),
+    customerId: text('customerId').notNull(),
+    productId: text('productId').notNull(),
+    productName: text('productName').notNull(), // Product name from webhook data.product.name
+    discountId: text('discountId'),
+    subscriptionId: text('subscriptionId'),
+    checkoutId: text('checkoutId'),
+    metadata: text('metadata'), // JSON string
+    userId: text('userId').references(() => user.id)
+});
+
 export const rateLimit = pgTable("rate_limit", {
     id: text("id").primaryKey(),
     key: text("key"),

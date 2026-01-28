@@ -8,6 +8,7 @@
         MessageCircle,
         Upload,
         Banknote,
+        ShoppingBag,
         Settings,
     } from "lucide-svelte";
 
@@ -37,6 +38,11 @@
             label: "Payment Gated",
             href: "/dashboard/payment",
             icon: Banknote,
+        },
+        {
+            label: "Orders",
+            href: "/dashboard/orders",
+            icon: ShoppingBag,
         },
     ];
 

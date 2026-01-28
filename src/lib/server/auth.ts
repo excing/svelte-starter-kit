@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { account, session, subscription, user, verification, rateLimit } from '$lib/server/db/schema';
+import { account, session, subscription, order, user, verification, rateLimit } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { checkout, polar, portal, usage, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
@@ -59,6 +59,7 @@ export const auth = betterAuth({
             account,
             verification,
             subscription,
+            order,
             rateLimit
         }
     }),
@@ -212,6 +213,94 @@ export const auth = betterAuth({
                             } catch (error) {
                                 console.error('💥 Error processing subscription webhook:', error);
                                 // Don't throw - let webhook succeed to avoid retries
+                            }
+                        }
+
+                        // Handle order events for one-time product purchases
+                        if (
+                            type === 'order.created' ||
+                            type === 'order.paid' ||
+                            type === 'order.updated'
+                        ) {
+                            console.log('🎯 Processing order webhook:', type);
+                            console.log('📦 Payload data:', JSON.stringify(data, null, 2));
+
+                            try {
+                                const userId = data.customer?.externalId;
+
+                                // Ensure required fields are present
+                                if (!data.productId) {
+                                    console.error('💥 Order webhook missing productId:', data.id);
+                                    return;
+                                }
+
+                                const orderData = {
+                                    id: data.id,
+                                    createdAt: new Date(data.createdAt),
+                                    modifiedAt: safeParseDate(data.modifiedAt),
+                                    status: data.status,
+                                    paid: data.paid || false,
+                                    subtotalAmount: data.subtotalAmount,
+                                    discountAmount: data.discountAmount || 0,
+                                    netAmount: data.netAmount,
+                                    taxAmount: data.taxAmount || 0,
+                                    totalAmount: data.totalAmount,
+                                    refundedAmount: data.refundedAmount || 0,
+                                    currency: data.currency,
+                                    billingReason: data.billingReason,
+                                    billingName: data.billingName || null,
+                                    invoiceNumber: data.invoiceNumber || null,
+                                    customerId: data.customerId,
+                                    productId: data.productId,
+                                    productName: data.product?.name || 'Unknown Product',
+                                    discountId: data.discountId || null,
+                                    subscriptionId: data.subscriptionId || null,
+                                    checkoutId: data.checkoutId || null,
+                                    metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+                                    userId: userId as string | null
+                                };
+
+                                console.log('💾 Final order data:', {
+                                    id: orderData.id,
+                                    status: orderData.status,
+                                    productName: orderData.productName,
+                                    userId: orderData.userId,
+                                    totalAmount: orderData.totalAmount
+                                });
+
+                                await db
+                                    .insert(order)
+                                    .values(orderData)
+                                    .onConflictDoUpdate({
+                                        target: order.id,
+                                        set: {
+                                            modifiedAt: orderData.modifiedAt || new Date(),
+                                            status: orderData.status,
+                                            paid: orderData.paid,
+                                            subtotalAmount: orderData.subtotalAmount,
+                                            discountAmount: orderData.discountAmount,
+                                            netAmount: orderData.netAmount,
+                                            taxAmount: orderData.taxAmount,
+                                            totalAmount: orderData.totalAmount,
+                                            refundedAmount: orderData.refundedAmount,
+                                            currency: orderData.currency,
+                                            billingReason: orderData.billingReason,
+                                            billingName: orderData.billingName,
+                                            invoiceNumber: orderData.invoiceNumber,
+                                            customerId: orderData.customerId,
+                                            productId: orderData.productId,
+                                            productName: orderData.productName,
+                                            discountId: orderData.discountId,
+                                            subscriptionId: orderData.subscriptionId,
+                                            checkoutId: orderData.checkoutId,
+                                            metadata: orderData.metadata,
+                                            userId: orderData.userId
+                                        }
+                                    });
+
+                                console.log('✅ Upserted order:', data.id);
+                            } catch (error) {
+                                console.error('💥 Error processing order webhook:', error);
                             }
                         }
                     }

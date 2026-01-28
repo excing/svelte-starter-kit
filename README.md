@@ -134,6 +134,7 @@ GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # Polar.sh Payments
+# 用于 sandbox 环境的测试卡号：https://docs.stripe.com/testing?testing-method=card-numbers#visa
 POLAR_ENVIRONMENT=sandbox  # or 'production'
 POLAR_ACCESS_TOKEN=your-polar-access-token
 POLAR_SUCCESS_URL=/success?checkout_id={CHECKOUT_ID}
