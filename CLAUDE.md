@@ -73,7 +73,7 @@ The app integrates Polar for subscription payments:
   - `isUserSubscribed(event)` - Check if user has active subscription
   - `hasAccessToProduct(event, productId)` - Check access to specific product
   - `getUserSubscriptionStatus(event)` - Get status: 'active' | 'canceled' | 'expired' | 'none'
-- **Environment variables**: `PUBLIC_STARTER_TIER` and `PUBLIC_STARTER_SLUG` define the subscription product
+- **Environment variables**: `PUBLIC_STARTER_TIER` defines the subscription product
 
 ### AI Chat Integration
 
@@ -125,7 +125,7 @@ Required environment variables (see `.env`):
 - `BETTER_AUTH_SECRET` - Auth encryption secret
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` - Google OAuth
 - `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET` - Polar payments
-- `PUBLIC_STARTER_TIER`, `PUBLIC_STARTER_SLUG` - Subscription product IDs
+- `PUBLIC_STARTER_TIER` - Subscription product ID
 - `R2_UPLOAD_IMAGE_ACCESS_KEY_ID`, `R2_UPLOAD_IMAGE_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `R2_UPLOAD_IMAGE_BUCKET_NAME` - Cloudflare R2
 - `OPENAI_API_KEY` - OpenAI API (currently empty in .env)
 

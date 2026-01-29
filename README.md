@@ -142,7 +142,6 @@ POLAR_WEBHOOK_SECRET=your-polar-webhook-secret
 
 # Subscriptions
 PUBLIC_STARTER_TIER=your-starter-tier-id
-PUBLIC_STARTER_SLUG=your-starter-slug
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key

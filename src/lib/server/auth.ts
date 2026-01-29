@@ -12,6 +12,7 @@ import { Resend } from 'resend';
 const POLAR_ENVIRONMENT = (env.POLAR_ENVIRONMENT as 'sandbox' | 'production' | undefined) || 'sandbox';
 const POLAR_ACCESS_TOKEN = env.POLAR_ACCESS_TOKEN!;
 const POLAR_WEBHOOK_SECRET = env.POLAR_WEBHOOK_SECRET!;
+const POLAR_SUCCESS_URL = env.POLAR_SUCCESS_URL || `/success?checkout_id={CHECKOUT_ID}`;
 const GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = env.GOOGLE_CLIENT_SECRET!;
 const RESEND_API_KEY = env.RESEND_API_KEY!;
@@ -120,7 +121,7 @@ export const auth = betterAuth({
             createCustomerOnSignUp: true,
             use: [
                 checkout({
-                    successUrl: `${PUBLIC_APP_URL}/success?checkout_id={CHECKOUT_ID}`,
+                    successUrl: `${PUBLIC_APP_URL}${POLAR_SUCCESS_URL}`,
                     authenticatedUsersOnly: true
                 }),
                 portal(),
